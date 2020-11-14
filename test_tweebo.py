@@ -5,7 +5,7 @@
 from tweebo_parser import API, ServerError
 from nltk.parse.dependencygraph import DependencyGraph
 import graphviz
-
+from nltk.corpus import treebank
 
 def add_root_node(list_conll_sentences):
     '''
@@ -25,19 +25,32 @@ def add_root_node(list_conll_sentences):
 
 
 tweebo_api = API() # Assumes server is running locally at 0.0.0.0:8000
-text_data = ['Guangdong University of Foreign Studies is located in Guangzhou.',
-             'Lucy is in the sky with diamonds.']
+text_data = ['!!!!!!""@__BrighterDays: I can not just sit up and HATE on another bitch .. I got too much shit going on!""',
+             'I can not just sit up and HATE on another bitch .. I got too much shit going on!']
 try:
     #parse the raw string into two different lanugage representation formats
     result_stanford = tweebo_api.parse_stanford(text_data)
     result_conll = tweebo_api.parse_conll(text_data)
 
     nltk_result = add_root_node(result_conll)
-    nltk_dep_tree = DependencyGraph(nltk_result[0])
+    nltk_dep_tree_0 = DependencyGraph(nltk_result[0])
+    nltk_dep_tree_1 = DependencyGraph(nltk_result[1])
     
     #print(result_stanford)
     #print(result_conll)
-    #print(nltk_dep_tree)
-    nltk_dep_tree.tree() #this doesnt output the image like in the example?
+    #print(nltk_result)
+    #print(nltk_dep_tree.contains_cycle())
+    tree_0 = nltk_dep_tree_0.tree()
+    tree_1 = nltk_dep_tree_1.tree()
+    #nltk_dep_tree.tree().view() 
+    print(tree_0)
+    for subtree in tree_0.subtrees():
+        print(subtree)
+
+    print(tree_1)
+    for subtree in tree_1.subtrees():
+        print(subtree)
+
+    #TODO test a multi-sentence string!!
 except ServerError as e:
     print(f'{e}\n{e.message}')
