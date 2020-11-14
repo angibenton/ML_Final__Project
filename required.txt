@@ -1,0 +1,5 @@
+nltk
+graphviz
+tweebo-parser-python-api
+pandas
+numpy
