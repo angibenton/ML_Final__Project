@@ -15,3 +15,5 @@ print("OFFENSIVE TWEETS: ", len(offensive_tweets))
 print("HATEFUL TWEETS: ", len(hate_tweets))
 
 print(tweets["tweet"][6])
+
+
