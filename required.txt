@@ -6,3 +6,4 @@ numpy
 re
 sklearn.utils 
 math
+qpsolvers
