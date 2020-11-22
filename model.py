@@ -35,7 +35,7 @@ class DualSVM(object):
         """ Fit the model by solving the quadratic program that arises from the dual DVM w/ kernel trick. 
 
         Args:
-            X: A list of self.num strings - do we need this other than for saving SVs ?
+            X: A list of self.num examples - (tweet, tree) tuple? 
             y: an column vector of self.num binary labels, -1 or 1
             kernel_matrix: a symmetric, self.num x self.num matrix of precomputed kernels 
         """

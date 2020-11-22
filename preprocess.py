@@ -26,7 +26,7 @@ def to_lowercase(tweet): #is this necessary lol
 regex_list = ['RT', '&amp', '&#\d*;', '@\S*:', '@\S*', '!+', '"+', 'https?:\/\/t\.co\/\w*', '#', '&\S*;']
 pattern_list = regex_to_pattern_objects(regex_list)
 
-tweets = pd.read_csv("raw_data.csv", index_col = 0)
+tweets = pd.read_csv("./data/raw_data.csv", index_col = 0)
 tweets["tweet"] = tweets["tweet"].apply(remove_regex, args = (pattern_list))
 tweets["tweet"] = tweets["tweet"].apply(to_lowercase)
 
