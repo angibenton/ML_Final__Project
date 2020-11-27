@@ -3,13 +3,7 @@ from numpy import array, dot
 from qpsolvers import solve_qp
 #currently working on this ! - angi 
 
-#TESTING 
-y = [1, 1, -1, -1]
-kernel_matrix = [[10, 5, 1, 0],
-                 [5, 10, 2, 3],
-                 [1, 2, 10, 7],
-                 [0, 3, 7, 10]]
-x = ["friend", "love", "bitch", "fuck"]
+
 
 
 class DualSVM(object):
@@ -29,9 +23,11 @@ class DualSVM(object):
         self.alphas = []
         self.nonzero_alphas = []
         self.support_vectors = []
+        self.support_vector_labels = []
         self.C = margin_hardness
+        self.b = 0 #???????
 
-    def fit(self, *, X, y, kernel_matrix):
+    def fit(self, X, y, kernel_matrix):
         """ Fit the model by solving the quadratic program that arises from the dual DVM w/ kernel trick. 
 
         Args:
@@ -41,21 +37,23 @@ class DualSVM(object):
         """
 
         # Setup the quadratic program (negate the objective function because qpsolvers minimizes)
-        q = (-1) * np.ones(self.num) # linear term 
+        q = (-1) * np.ones(self.num).astype(float) # linear term 
         print("q: ", q)
-        P = np.transpose(y) * kernel_matrix # quadratic term 
+
+        P = (np.transpose(y) * kernel_matrix * y).astype(float) # quadratic term 
         print("P: ", P)
+        print(np.linalg.eigvals(P))
 
         # alpha dot y = 0 constraint 
-        A = np.transpose(y)
+        A = np.transpose(y).astype(float)
         print("A: ", A)
         b = 0
         print("b: ", b)
 
         # all alphas between 0 and C constraint
-        lb = np.zeros()
+        lb = np.zeros(self.num).astype(float)
         print("lb: ", lb)
-        ub = np.full((self.num, 1), self.C)
+        ub = np.full(self.num, self.C).astype(float)
         print("ub: ", ub)
 
         # Solve (QP): 
@@ -71,22 +69,79 @@ class DualSVM(object):
             if (self.alphas[i] > 0):
                 self.nonzero_alphas.append(self.alphas[i])
                 self.support_vectors.append(X[i])
+                self.support_vector_labels.append(y[i])
+        
+        y_hat = np.zeros(len(X)) #initialize the predictions to zero
+        for i in range(len(X)): #over examples (rows of kernel matrix)
+            for j in range(len(self.support_vectors)): #over support vectors (columns of kernel matrix)
+                y_hat[i] += self.nonzero_alphas[j] * self.support_vector_labels[j] * kernel_matrix[i][j]
+        for i in range(len(y)):
+            print("y_hat: ", y_hat[i], ", y:", + y[i])
 
 
     def predict(self, X, kernel_matrix):
         """ Predict.
 
         Args:
-            X: A list of strings to classify 
-            kernel_matrix: an ndarray containing kernel evaluations
+            X: A list of examples to classify
+            kernel_matrix: an ndarray containing kernel evaluations between the examples and support vectors 
 
         Returns:
-            A dense array of ints with shape [num_examples].
+            An array of ints with shape [num_examples].
         """
+        y_hat = np.zeros(len(X)) #initialize the predictions to zero
+        for i in range(len(X)): #over examples (rows of kernel matrix)
+            for j in range(len(self.support_vectors)): #over support vectors (columns of kernel matrix)
+                y_hat[i] += self.nonzero_alphas[j] * self.support_vector_labels[j] * kernel_matrix[i][j]
+        print(y_hat)
+        y_hat += self.b
+        print(y_hat)
+        y_hat = np.sign(y_hat)
+        return y_hat
+
         
 
-    def get_support_vectors():
+    def get_support_vectors(self):
         return self.support_vectors 
 
 
+
+#TESTING 
+y = [1, 1, -1, -1]
+kernel_matrix = [[10, 5, 1, 0],
+                 [5, 10, 2, 3],
+                 [1, 2, 10, 7],
+                 [0, 3, 7, 10]]
+
+
+#TESTING 
+y = [1, 1, -1, -1]
+kernel_matrix = [[100, 5, 1, 0],
+                 [5, 100, 2, 3],
+                 [1, 2, 100, 4],
+                 [0, 3, 4, 100]]
+
+#TESTING 
+x2 = ["cunt", "whore"]
+y2 = [-1, -1]
+kernel_matrix2 = [[2, 0, 40, 8],
+                 [1, 1, 20, 10]]
+
+#TESTING 
+x3 = ["happy", "cute"]
+y3 = [1, 1]
+kernel_matrix3 = [[100, 57, 1, 2],
+                 [500, 350, 20, 10]]
+
+print(np.linalg.eigvals(kernel_matrix))
+
+x = ["friend", "love", "bitch", "fuck"]
+
+mod = DualSVM(4, 100)
+mod.fit(x, y, kernel_matrix)
+print(mod.get_support_vectors())
+preds2 = mod.predict(x2, kernel_matrix2)
+print(preds2)
+preds3 = mod.predict(x3, kernel_matrix3)
+print(preds3)
 
