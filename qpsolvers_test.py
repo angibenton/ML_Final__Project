@@ -3,6 +3,11 @@
 import qpsolvers as qp
 import numpy as np
 
+
+def function_value(x,q,P):
+    return q@x-0.5*x.T@P@x
+
+
 P = (-100) * np.identity(5).astype(float)
 print("P: " , P.shape)
 print(P.dtype)
@@ -19,4 +24,9 @@ print("ub: " , ub.shape)
 
 x_star = qp.solve_qp(P = P, q = q, G = G, h = h, lb = lb, ub = ub)
 #waiting on a response from the qpsolvers github people on why this produces an error - if its obvious to anyone please lmk!
+#qpsolvers requires P to be positive definite which is this example case is not true,
+#trying somthing with cvxopt.solvers, hope it will work
 print(x_star)
+print(function_value(x_star,q,P))
+
+
