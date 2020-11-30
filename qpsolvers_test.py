@@ -25,7 +25,7 @@ print("ub: " , ub.shape)
 x_star = qp.solve_qp(P = P, q = q, G = G, h = h, lb = lb, ub = ub)
 #waiting on a response from the qpsolvers github people on why this produces an error - if its obvious to anyone please lmk!
 #qpsolvers requires P to be positive definite which in the example case is not ,
-#trying somthing with cvxopt.solvers, hope it will work- Yanzong
+#if we can keep our matrix to be positive definite this will not be a problem
 print(x_star)
 print(function_value(x_star,q,P))
 
