@@ -3,6 +3,13 @@
 
 from nltk.tree import Tree, ImmutableTree
 
+
+#Convert a conll string representation of a tweet into a list of dependency trees
+#One tree per root (generally one root per sentence)
+def conllToTrees(conllString):
+    trees = []
+    return trees
+
 #A helper function to create all possible subtrees by matching all possible subtrees of the siblings to one another
 def siblingMatch(parent, treeList, index):
     subtrees = []
