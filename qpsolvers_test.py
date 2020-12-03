@@ -3,7 +3,7 @@
 import qpsolvers as qp
 import numpy as np
 
-P = (-100) * np.identity(5).astype(float)
+P = (100) * np.identity(5).astype(float)
 print("P: " , P.shape)
 print(P.dtype)
 q = np.array([42, 44, 45, 47, 47.5]).astype(float)
@@ -18,5 +18,4 @@ ub = np.ones((5,)).astype(float)
 print("ub: " , ub.shape)
 
 x_star = qp.solve_qp(P = P, q = q, G = G, h = h, lb = lb, ub = ub)
-#waiting on a response from the qpsolvers github people on why this produces an error - if its obvious to anyone please lmk!
 print(x_star)
