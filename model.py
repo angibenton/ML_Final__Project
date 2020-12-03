@@ -76,7 +76,8 @@ class DualSVM(object):
             for j in range(len(self.support_vectors)): #over support vectors (columns of kernel matrix)
                 y_hat[i] += self.nonzero_alphas[j] * self.support_vector_labels[j] * kernel_matrix[i][j]
         for i in range(len(y)):
-            print("y_hat: ", y_hat[i], ", y:", + y[i])
+            b = y[i] - y_hat[i] 
+            print("Example #" +  str(i) + " - f(x): " + str(y_hat[i]) + ", y: " + str(y[i]) + ", b would be: " + str(b))
 
 
     def predict(self, X, kernel_matrix):
@@ -93,9 +94,7 @@ class DualSVM(object):
         for i in range(len(X)): #over examples (rows of kernel matrix)
             for j in range(len(self.support_vectors)): #over support vectors (columns of kernel matrix)
                 y_hat[i] += self.nonzero_alphas[j] * self.support_vector_labels[j] * kernel_matrix[i][j]
-        print(y_hat)
         y_hat += self.b
-        print(y_hat)
         y_hat = np.sign(y_hat)
         return y_hat
 
@@ -106,42 +105,45 @@ class DualSVM(object):
 
 
 
-#TESTING 
-y = [1, 1, -1, -1]
-kernel_matrix = [[10, 5, 1, 0],
-                 [5, 10, 2, 3],
-                 [1, 2, 10, 7],
-                 [0, 3, 7, 10]]
 
-
-#TESTING 
+#TRAINING 
+x = ["friend", "love", "bad word 3", "bad word 4"]
 y = [1, 1, -1, -1]
 kernel_matrix = [[100, 5, 1, 0],
                  [5, 100, 2, 3],
                  [1, 2, 100, 4],
                  [0, 3, 4, 100]]
+print(np.linalg.eigvals(kernel_matrix))
+mod = DualSVM(4, 100)
+mod.fit(x, y, kernel_matrix)
 
-#TESTING 
-x2 = ["cunt", "whore"]
+#TESTING 2
+x2 = ["bad word", "bad word 2"]
 y2 = [-1, -1]
 kernel_matrix2 = [[2, 0, 40, 8],
                  [1, 1, 20, 10]]
+preds2 = mod.predict(x2, kernel_matrix2)
+print("actual 2: ", end = '')
+print(y2)
+print("pred 2: ", end = '')
+print(preds2)
 
-#TESTING 
+#TESTING 3
 x3 = ["happy", "cute"]
 y3 = [1, 1]
 kernel_matrix3 = [[100, 57, 1, 2],
                  [500, 350, 20, 10]]
-
-print(np.linalg.eigvals(kernel_matrix))
-
-x = ["friend", "love", "bitch", "fuck"]
-
-mod = DualSVM(4, 100)
-mod.fit(x, y, kernel_matrix)
-print(mod.get_support_vectors())
-preds2 = mod.predict(x2, kernel_matrix2)
-print(preds2)
 preds3 = mod.predict(x3, kernel_matrix3)
+print("actual 3: ", end = '')
+print(y3)
+print("pred 3: ", end = '')
 print(preds3)
+
+
+
+
+
+
+
+
 
