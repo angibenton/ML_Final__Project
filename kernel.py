@@ -4,6 +4,10 @@
 from nltk.tree import Tree, ImmutableTree
 from nltk.parse.dependencygraph import DependencyGraph
 
+#hide warning for parsing graph without root element, we manually search for these roots
+import warnings
+warnings.filterwarnings("ignore", message="The graph doesn't contain a node that depends on the root element.")
+
 
 #Convert a conll string representation of a tweet into a list of dependency trees
 #One tree per root (generally one root per sentence)
@@ -119,3 +123,149 @@ def printTree(tree):
     image = Image.open(io.BytesIO(imgdata))
     plt.figure()
     plt.imshow(np.array(image))
+
+from collections import defaultdict, Counter
+from functools import wraps
+from tqdm import tqdm
+
+
+def cache_decorator():
+    """
+    Cache decorator. Stores elements to avoid repeated computations.
+    For more details see: https://stackoverflow.com/questions/36684319/decorator-for-a-class-method-that-caches-return-value-after-first-access
+    """
+    def wrapper(function):
+        """
+        Return element if in cache. Otherwise compute and store.
+        """
+        cache = {}
+
+        @wraps(function)
+        def element(*args):
+            if args in cache:
+                result = cache[args]
+            else:
+                result = function(*args)
+                cache[args] = result
+            return result
+
+        def clear():
+            """
+            Clear cache.
+            """
+            cache.clear()
+
+        # Clear the cache
+        element.clear = clear
+        return element
+    return wrapper
+
+
+class Kernel(object):
+    """ Abstract kernel object.
+    """
+    def evaluate(self, s, t):
+        """
+        Kernel function evaluation.
+        Args:
+            s: A string corresponding to a document.
+            t: A string corresponding to a document.
+        Returns:
+            A float from evaluating K(s,t)
+        """
+        raise NotImplementedError()
+
+    def compute_kernel_matrix(self, *, X, X_prime=None):
+        """
+        Compute kernel matrix. Index into kernel matrix to evaluate kernel function.
+        Args:
+            X: A list of strings, where each string corresponds to a document.
+            X_prime: (during testing) A list of strings, where each string corresponds to a document.
+        Returns:
+            A compressed sparse row matrix of floats with each element representing
+            one kernel function evaluation.
+        """
+
+        #for training, optimize by only computing upper triangular
+        if not X_prime:
+            #replace X_prime with training data
+            X_prime = X  
+            kernel_matrix = np.zeros((len(X), len(X_prime)), dtype=np.float32)
+            for i in tqdm(range(len(X))):
+                for j in range(len(X_prime)):
+                    #compute upper triangular
+                    if (j > i):
+                        kernel_matrix[i,j] = self.evaluate(X[i],X_prime[j])
+                    #diagonal will contain only 1's
+                    elif (j == i):
+                        kernel_matrix[i,j] = 1
+                    #copy from upper triangular
+                    else:
+                        kernel_matrix[i,j] = kernel_matrix[j,i]
+        #testing                
+        else:
+            kernel_matrix = np.zeros((len(X), len(X_prime)), dtype=np.float32)
+            for i in tqdm(range(len(X))):
+                for j in range(len(X_prime)):
+                    kernel_matrix[i,j] = self.evaluate(X[i],X_prime[j])
+        return kernel_matrix
+
+
+class SimplePairsKernel(Kernel):
+
+    @cache_decorator()
+    def evaluate(self, tweet1, tweet2):
+        """
+        Args:
+            tweet1: a tweet in (string, conll) tuple form.
+            tweet2: a tweet in (string, conll) tuple form.
+        Returns:
+            A float from evaluating K(tweet1,tweet2)
+        """
+        trees1 = conllToTrees(tweet1[1])
+        vocabulary1 = set()
+        for tree in trees1:
+            vocabulary1 = vocabulary1.union(getSyntacticPairs(tree))
+
+        trees2 = conllToTrees(tweet2[1])
+        vocabulary2 = set()
+        for tree in trees2:
+            vocabulary2 = vocabulary2.union(getSyntacticPairs(tree))
+
+        common = len(vocabulary1.intersection(vocabulary2))
+        total = len(vocabulary1.union(vocabulary2))
+        
+        if total == 0:
+            return 1
+        else:
+            return common / total
+
+class SimpleSubgraphsKernel(Kernel):
+
+    @cache_decorator()
+    def evaluate(self, tweet1, tweet2):
+        """
+        Args:
+            tweet1: a tweet in (string, conll) tuple form.
+            tweet2: a tweet in (string, conll) tuple form.
+        Returns:
+            A float from evaluating K(tweet1,tweet2)
+        """
+        trees1 = conllToTrees(tweet1[1])
+        vocabulary1 = set()
+        for tree in trees1:
+            vocabulary1 = vocabulary1.union(getSubgraphs(tree)[0])
+
+        trees2 = conllToTrees(tweet2[1])
+        vocabulary2 = set()
+        for tree in trees2:
+            vocabulary2 = vocabulary2.union(getSubgraphs(tree)[0])
+
+        common = len(vocabulary1.intersection(vocabulary2))
+        total = len(vocabulary1.union(vocabulary2))
+        
+        if total == 0:
+            return 1
+        else:
+            return common / total
+
