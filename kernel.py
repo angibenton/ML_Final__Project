@@ -2,12 +2,18 @@
 #needs the dependency trees (in string format?)
 
 from nltk.tree import Tree, ImmutableTree
+from nltk.parse.dependencygraph import DependencyGraph
 
 
 #Convert a conll string representation of a tweet into a list of dependency trees
 #One tree per root (generally one root per sentence)
 def conllToTrees(conllString):
+    dep = DependencyGraph(conllString)
+    roots = {k: v for k, v in dep.nodes.items() if v.get('head') == 0}
     trees = []
+    for root in roots:
+        tree = dep._tree(root)
+        trees.append(tree)
     return trees
 
 #A helper function to create all possible subtrees by matching all possible subtrees of the siblings to one another
