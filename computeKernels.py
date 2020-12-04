@@ -9,7 +9,7 @@ conlls = file['CoNLL'].tolist()
 
 tweets = tuple(zip(strings, conlls))
 
-k = kernel.SimplePairsKernel()
+k = kernel.SimpleSubgraphsKernel()
 
 p = k.compute_kernel_matrix(X=tweets)
 
