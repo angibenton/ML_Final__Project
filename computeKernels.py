@@ -9,12 +9,12 @@ conlls = file['CoNLL'].tolist()
 
 tweets = tuple(zip(strings, conlls))
 
-k = kernel.SimpleSubgraphsKernel()
+k = kernel.TFIDFPairsKernel(X=tweets)
 
 p = k.compute_kernel_matrix(X=tweets)
 
 df = pd.DataFrame(data = p.astype(float))
 
-df.to_csv('./data/p2_train_pairs_matrix.csv', index = False)
+df.to_csv('./data/p2_train_pairs_matrix_tfidf.csv', index = False)
 
 print(p)

@@ -110,6 +110,30 @@ def getSyntacticPairs(tree):
             pairs.update(getSyntacticPairs(child))
     return pairs
 
+#helper function to return set of all pairs from dependency tree
+def getSyntacticPairsList(tree):
+    pairs = []
+    #no pairs left if on leaves
+    if type(tree) is str:
+        return []
+    elif len(tree) < 1:
+        return []
+    else:
+        #add the pair between parent and each child
+        for child in tree:
+            #if child is leaf, might not be a tree, handle carefully
+            childName = ""
+            if type(child) is str:
+                childName = child
+            else:
+                childName = child.label()
+            #add the pair with that child
+            pairs.append((tree.label(), childName))
+            #add all of that child's pairs
+            pairs.extend(getSyntacticPairs(child))
+    return pairs
+
+
 from PIL import Image
 import base64
 import io
@@ -194,11 +218,8 @@ class Kernel(object):
             for i in tqdm(range(len(X))):
                 for j in range(len(X_prime)):
                     #compute upper triangular
-                    if (j > i):
+                    if (j >= i):
                         kernel_matrix[i,j] = self.evaluate(X[i],X_prime[j])
-                    #diagonal will contain only 1's
-                    elif (j == i):
-                        kernel_matrix[i,j] = 1
                     #copy from upper triangular
                     else:
                         kernel_matrix[i,j] = kernel_matrix[j,i]
@@ -268,4 +289,130 @@ class SimpleSubgraphsKernel(Kernel):
             return 1
         else:
             return common / total
+
+class TFIDFPairsKernel(Kernel):
+
+    def __init__(self, *, X, X_prime=None):
+        """
+        Pre-compute tf-idf values for each (document, word) pair in dataset.
+
+        Args:
+            X: A list of strings, where each string corresponds to a document.
+            X_prime: (during testing) A list of strings, where each string corresponds to a document.
+
+        Sets:
+            tfidf: You will use this in the evaluate function.
+        """
+        self.tf = {}
+        self.tfidf = self.compute_tfidf(X, X_prime)
+        
+
+    def compute_tf(self, tweet):
+        """
+        Compute the tf for each word in a particular document.
+        You may choose to use or not use this helper function.
+
+        Args:
+            doc: A string corresponding to a document.
+
+        Returns:
+            A data structure containing tf values.
+        """
+        trees = conllToTrees(tweet[1])
+        pairs = []
+        for tree in trees:
+            pairs.extend(getSyntacticPairsList(tree))
+        tf = defaultdict(int)
+        pair_count = 0
+        for pair in pairs:
+            pair_count += 1
+            tf[pair] += 1
+
+        for pair in tf:
+            tf[pair] /= pair_count
+        
+        return tf
+
+
+    def compute_df(self, tweets, vocab):
+        """
+        Compute the df for each word in the vocab.
+        You may choose to use or not use this helper function.
+
+        Args:
+            X: A list of strings, where each string corresponds to a document.
+            vocab: A set of distinct words that occur in the corpus.
+
+        Returns:
+            A data structure containing df values.
+        """
+        df = defaultdict(int)
+        for tweet in tqdm(tweets):
+            trees = conllToTrees(tweet[1])
+            pairs = set()
+            for tree in trees:
+                pairs.update(getSyntacticPairs(tree))
+            for pair in vocab:    
+                if pair in pairs:
+                    df[pair] += 1
+        return df
+
+    def compute_tfidf(self, tweets, test_tweets):
+        """
+        Compute the tf-idf for each (document, word) pair in dataset.
+        You will call the helper functions to compute term-frequency 
+        and document-frequency here.
+
+        Args:
+            X: A list of strings, where each string corresponds to a document.
+            X_prime: (during testing) A list of strings, where each string corresponds to a document.
+
+        Returns:
+            A data structure containing tf-idf values. You can represent this however you like.
+            If you're having trouble, you may want to consider a dictionary keyed by 
+            the tuple (document, word).
+        """
+        # Concatenate collections of documents during testing
+        if test_tweets:
+            tweets = tweets + test_tweets
+
+        
+        vocab = set()
+        for tweet in tweets:
+            trees = conllToTrees(tweet[1])
+            for tree in trees:
+                vocab.update(getSyntacticPairs(tree))
+
+        
+        df = self.compute_df(tweets, vocab)
+
+        tfidf = {}
+
+        N = len(tweets)
+        for tweet in tqdm(tweets):
+            tf = self.compute_tf(tweet)
+            self.tf[tweet] = tf
+            for pair in tf:
+                tfidf[(tweet, pair)] = tf[pair] * np.log(N / (df[pair] + 1))
+
+        return tfidf
+    @cache_decorator()
+    def evaluate(self, tweet1, tweet2):
+        """
+        tf-idf kernel function evaluation.
+
+        Args:
+            s: A string corresponding to a document.
+            t: A string corresponding to a document.
+
+        Returns:
+            A float from evaluating K(s,t)
+        """
+        k = 0 
+        tf1 = self.tf[tweet1]
+        for pair in tf1:
+            if (tweet2, pair) in self.tfidf:
+                k = k + tf1[pair] * self.tfidf[(tweet2, pair)]
+        return k
+
 
