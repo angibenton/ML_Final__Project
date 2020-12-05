@@ -87,6 +87,53 @@ def getSubgraphs(tree):
         allGraphList.update(siblings)
         return (allGraphList, topGraphList)
 
+#Helper function to return a list of all subgraphs (trees) of a tree.
+#Since recursive, second return of function is a list of only graphs
+#that contain the parent node, to help in building higher subgraphs.
+#This can be ignored when calling, first return is all possible subgraphs.
+def getSubgraphsList(tree):
+    #sometimes leaves are represented as strings instead of trees
+    if type(tree) is str:
+        allGraphList = []
+        topGraphList = []
+        #turn the string into a tree
+        parent = ImmutableTree(tree, [])
+        #add to the lists and return
+        allGraphList.append(parent)
+        topGraphList.append(parent)
+        return (allGraphList, topGraphList)
+    #if the leaf is actually a tree, it will have no children
+    elif len(tree) < 1:
+        #return lists with the leaf
+        allGraphList = []
+        topGraphList = []
+        allGraphList.append(ImmutableTree(tree, []))
+        topGraphList.append(ImmutableTree(tree, []))
+        return (allGraphList, topGraphList)
+    else:
+        #otherwise, if it does have children
+        allGraphList = []
+        topGraphList = []
+        topChildGraphs = []
+        #go through each of its children
+        for i in range(len(tree)):
+            #recursively find all of the subtrees of the children
+            allChild, topChild = getSubgraphsList(tree[i])
+            #add these subgraphs to the allgraphs list
+            allGraphList.extend(allChild)
+            #keep track of the top subtrees of each child
+            topChildGraphs.append(topChild)
+        #permute together all of the possibile subtrees for each child with their siblings
+        siblings = siblingMatch(tree.label(), topChildGraphs, 0)
+        #also add the root parent
+        parent = ImmutableTree(tree.label(), [])
+        #add these to the lists and return
+        topGraphList.append(parent)
+        allGraphList.append(parent)
+        topGraphList.extend(siblings)
+        allGraphList.extend(siblings)
+        return (allGraphList, topGraphList)
+
 #helper function to return set of all pairs from dependency tree
 def getSyntacticPairs(tree):
     pairs = set()
@@ -415,4 +462,127 @@ class TFIDFPairsKernel(Kernel):
                 k = k + tf1[pair] * self.tfidf[(tweet2, pair)]
         return k
 
+class TFIDFSubgraphsKernel(Kernel):
 
+    def __init__(self, *, X, X_prime=None):
+        """
+        Pre-compute tf-idf values for each (document, word) pair in dataset.
+
+        Args:
+            X: A list of strings, where each string corresponds to a document.
+            X_prime: (during testing) A list of strings, where each string corresponds to a document.
+
+        Sets:
+            tfidf: You will use this in the evaluate function.
+        """
+        self.tf = {}
+        self.tfidf = self.compute_tfidf(X, X_prime)
+        
+
+    def compute_tf(self, tweet):
+        """
+        Compute the tf for each word in a particular document.
+        You may choose to use or not use this helper function.
+
+        Args:
+            doc: A string corresponding to a document.
+
+        Returns:
+            A data structure containing tf values.
+        """
+        trees = conllToTrees(tweet[1])
+        graphs = []
+        for tree in trees:
+            graphs.extend(getSubgraphsList(tree)[0])
+        tf = defaultdict(int)
+        graph_count = 0
+        for graph in graphs:
+            graph_count += 1
+            tf[graph] += 1
+
+        for graph in tf:
+            tf[graph] /= graph_count
+        
+        return tf
+
+
+    def compute_df(self, tweets, vocab):
+        """
+        Compute the df for each word in the vocab.
+        You may choose to use or not use this helper function.
+
+        Args:
+            X: A list of strings, where each string corresponds to a document.
+            vocab: A set of distinct words that occur in the corpus.
+
+        Returns:
+            A data structure containing df values.
+        """
+        df = defaultdict(int)
+        for tweet in tqdm(tweets):
+            trees = conllToTrees(tweet[1])
+            graphs = set()
+            for tree in trees:
+                graphs.update(getSubgraphs(tree)[0])
+            for graph in vocab:    
+                if graph in graphs:
+                    df[graph] += 1
+        return df
+
+    def compute_tfidf(self, tweets, test_tweets):
+        """
+        Compute the tf-idf for each (document, word) pair in dataset.
+        You will call the helper functions to compute term-frequency 
+        and document-frequency here.
+
+        Args:
+            X: A list of strings, where each string corresponds to a document.
+            X_prime: (during testing) A list of strings, where each string corresponds to a document.
+
+        Returns:
+            A data structure containing tf-idf values. You can represent this however you like.
+            If you're having trouble, you may want to consider a dictionary keyed by 
+            the tuple (document, word).
+        """
+        # Concatenate collections of documents during testing
+        if test_tweets:
+            tweets = tweets + test_tweets
+
+        
+        vocab = set()
+        for tweet in tweets:
+            trees = conllToTrees(tweet[1])
+            for tree in trees:
+                vocab.update(getSubgraphs(tree)[0])
+
+        
+        df = self.compute_df(tweets, vocab)
+
+        tfidf = {}
+
+        N = len(tweets)
+        for tweet in tqdm(tweets):
+            tf = self.compute_tf(tweet)
+            self.tf[tweet] = tf
+            for graph in tf:
+                tfidf[(tweet, graph)] = tf[graph] * np.log(N / (df[graph] + 1))
+
+        return tfidf
+    @cache_decorator()
+    def evaluate(self, tweet1, tweet2):
+        """
+        tf-idf kernel function evaluation.
+
+        Args:
+            s: A string corresponding to a document.
+            t: A string corresponding to a document.
+
+        Returns:
+            A float from evaluating K(s,t)
+        """
+        k = 0 
+        tf1 = self.tf[tweet1]
+        for graph in tf1:
+            if (tweet2, graph) in self.tfidf:
+                k = k + tf1[graph] * self.tfidf[(tweet2, graph)]
+        return k
