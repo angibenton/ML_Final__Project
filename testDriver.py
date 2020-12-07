@@ -4,56 +4,89 @@ from kernel import SimpleSubgraphsKernel
 from kernel import TFIDFPairsKernel
 from kernel import TFIDFSubgraphsKernel 
 
+import pickle 
 import pandas as pd
 import numpy as np
 
 #------TEST DRIVER FILE-------
 
-#kernel matrix p2_train_pairs_matrix.csv (made by SimplePairsKernel)
-#TRAIN
-#get the kernel matrix
-kernel_matrix_train_df = pd.read_csv("data/p2_train_pairs_matrix.csv")
-kernel_matrix_train = kernel_matrix_train_df.to_numpy()
+def print_acc(y, y_hat):
+    tot = len(y)
+    correct = 0
+    for i in range(tot):
+        if y[i] == y_hat[i]:
+            correct = correct + 1
+    acc = correct / tot
+    print("Accuracy = " + str(acc) + "%, " + str(correct) + " out of " + str(tot))
 
-#get the data
-train_data_df = pd.read_csv("data/p2_train_parsed.csv")
-y_train = train_data_df["class"].to_numpy()
-train_conll = train_data_df["CoNLL"].values.tolist()
-train_strings = train_data_df["tweet"].values.tolist()
-X_train = tuple(zip(train_strings, train_conll))
+def train(examples_filename, model_filename, kernelmatrix_filename, lmbda):
+    print("Training...")
+    #get the data
+    data_df = pd.read_csv(examples_filename)
+    y = data_df["class"].to_numpy()
+    conll = data_df["CoNLL"].values.tolist()
+    strings = data_df["tweet"].values.tolist()
+    X = tuple(zip(strings, conll))
+    #get the kernel matrix
+    kernel_matrix_df = pd.read_csv(kernelmatrix_filename)
+    kernel_matrix = kernel_matrix_df.to_numpy()
+    mod = KernelPegasos(nexamples = len(X), lmbda = lmbda) 
+    #train
+    mod.fit(X=X, y=y, kernel_matrix = kernel_matrix)  
+    #save the model
+    pickle.dump(mod, open(model_filename, 'wb'))
+    print("Percentage of training examples that become support vectors: ",  len(mod.support_vectors)/len(X))
+    print("Done training")
+    return
 
-#train model
-mod = KernelPegasos(nexamples = len(X_train), lmbda = 1e-3) #higher lamba -> higher amount of SVs
-mod.fit(X=X_train, y=y_train, kernel_matrix = kernel_matrix_train)
-print("Percentage of training examples that become support vectors: ",  len(mod.support_vectors)/len(X_train))
+
+def test(examples_filename, model_filename, kernel):
+    print("Testing...")
+    #open model
+    mod = pickle.load(open(model_filename, 'rb'))
+    #get the test data
+    data_df = pd.read_csv(examples_filename)
+    y = data_df["class"].to_numpy()
+    conll = data_df["CoNLL"].values.tolist()
+    strings = data_df["tweet"].values.tolist()
+    X = tuple(zip(strings, conll))
+    #compute the kernel_matrix
+    print("computing kernel matrix for SVs vs. test examples...")
+    kernel_matrix = kernel.compute_kernel_matrix(X = mod.support_vectors, X_prime = X)
+    #predict
+    y_hat = mod.predict(X=X, kernel_matrix=kernel_matrix)
+    print_acc(y, y_hat)
+    #save predictions ? idk
+    print("Done testing")
 
 
-#will need this for saving models if we want
-#pickle.dump(mod, open("p2_pairs.model", 'wb'))
-#mod = pickle.load(open("p2_pairs.model", 'rb'))
+def test_precomputed_kernel(examples_filename, model_filename, kernelmatrix_filename):
+    print("Testing...")
+    #open model
+    mod = pickle.load(open(model_filename, 'rb'))
+    #get the test data
+    data_df = pd.read_csv(examples_filename)
+    y = data_df["class"].to_numpy()
+    conll = data_df["CoNLL"].values.tolist()
+    strings = data_df["tweet"].values.tolist()
+    X = tuple(zip(strings, conll))
+    #open the kernel matrix
+    kernel_matrix_df = pd.read_csv(kernelmatrix_filename)
+    kernel_matrix = kernel_matrix_df.to_numpy()
+    #predict
+    y_hat = mod.predict(X, kernel_matrix)
+    print_acc(y, y_hat)
+    #save predictions ? idk 
+    print("Done testing")
 
-#TEST 
-#get the data
-data_test_df = pd.read_csv("data/p2_test_parsed.csv")
-y_test = data_test_df["class"].to_numpy()
-test_conll = data_test_df["CoNLL"].values.tolist()
-test_strings = data_test_df['tweet'].tolist()
-X_test = tuple(zip(test_strings, test_conll))
+#TODO add another function to just compute the testing kernel matrix so you can use this ^ if needed ?
 
-#get the kernel matrix
+#use different kernels here!
+LMBDA = 1e-6
 sp_kernel = SimplePairsKernel()
-print("computing kernel matrix for SVs vs. test examples...")
-kernel_matrix_test = sp_kernel.compute_kernel_matrix(X = mod.support_vectors, X_prime = X_test)
-print("test kernel matrix:\n", kernel_matrix_test)
-df = pd.DataFrame(data = kernel_matrix_test.astype(float))
+#NOTE: make lambda smaller -> less SVs -> less time to compute kernel matrix -> but at some point less accuracy it seems like
+train(examples_filename = "data/p2_train_parsed.csv", model_filename = "saved_models/p2_simple_pairs.model", kernelmatrix_filename = "data/p2_train_pairs_matrix.csv", lmbda = LMBDA)
+test(examples_filename = "data/p2_test_parsed.csv", model_filename = "saved_models/p2_simple_pairs.model", kernel = sp_kernel)
 
-df.to_csv('./data/p2_test_pairs_matrix.csv', index = False)
-
-y_hat = mod.predict(X=X_test, kernel_matrix=kernel_matrix_test)
-print("predictions: \n", y_hat)
-
-df2 = pd.DataFrame(data = y_hat.astype(float))
-
-df2.to_csv('./data/p2_pairs_predictions.csv', index = False)
 
 

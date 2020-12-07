@@ -113,6 +113,9 @@ class KernelPegasos(Model):
         sums = np.zeros(len(X))
         for i in range (len(self.support_vectors)):
             sums += alpha[i] * self.labels_corresp_to_svs[i] * kernel_matrix[i]
-        y_hat = np.sign(sums)
+        y_hat = np.sign(sums).astype(int)
+        #default to class 1, the "better" class
+        #represents giving tweets the benefit of the doubt 
+        y_hat[y_hat == 0] = 1 
         return y_hat
 
