@@ -25,7 +25,7 @@ class DualSVM(object):
         self.support_vectors = []
         self.support_vector_labels = []
         self.C = margin_hardness
-        self.b = 0 #???????
+        self.b = 0 
 
     def fit(self, X, y, kernel_matrix):
         """ Fit the model by solving the quadratic program that arises from the dual DVM w/ kernel trick. 
@@ -65,19 +65,28 @@ class DualSVM(object):
         print(self.alphas)
 
         # Save support vectors 
+        total_bias = 0 #also accumulate what the total bias is 
         for i in range(self.num):
-            if (self.alphas[i] > 0):
+            if (self.alphas[i] > 0): #on a support vector 
                 self.nonzero_alphas.append(self.alphas[i])
                 self.support_vectors.append(X[i])
                 self.support_vector_labels.append(y[i])
-        
-        y_hat = np.zeros(len(X)) #initialize the predictions to zero
-        for i in range(len(X)): #over examples (rows of kernel matrix)
-            for j in range(len(self.support_vectors)): #over support vectors (columns of kernel matrix)
-                y_hat[i] += self.nonzero_alphas[j] * self.support_vector_labels[j] * kernel_matrix[i][j]
-        for i in range(len(y)):
-            b = y[i] - y_hat[i] 
-            print("Example #" +  str(i) + " - f(x): " + str(y_hat[i]) + ", y: " + str(y[i]) + ", b would be: " + str(b))
+                
+                #calculate what the prediction would be for this support vector
+                #based on other support vectors
+                #slightly awkward so that we don't need to do another kernel matrix
+                #possibly change depending on how kernel is 
+                prediction_i = 0  
+                for j in range(self.num): 
+                    if (self.alphas[j] > 0): #on a support vector 
+                        prediction_i += self.alphas[j] * y[j] * kernel_matrix[i][j] 
+                total_bias += prediction_i - y[i] 
+                print("prediction_i:", prediction_i)
+                print("y[i]:", y[i])
+
+
+        self.b = total_bias / len(self.support_vectors) #b is the mean bias
+        print("self.b:", self.b)
 
 
     def predict(self, X, kernel_matrix):
@@ -95,7 +104,7 @@ class DualSVM(object):
             for j in range(len(self.support_vectors)): #over support vectors (columns of kernel matrix)
                 y_hat[i] += self.nonzero_alphas[j] * self.support_vector_labels[j] * kernel_matrix[i][j]
         y_hat += self.b
-        y_hat = np.sign(y_hat)
+        y_hat = np.sign(y_hat).astype(int)
         return y_hat
 
         
