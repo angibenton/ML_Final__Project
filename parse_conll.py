@@ -1,3 +1,7 @@
+#--------- all tweebo-dependent code should be in this file -----------
+#BEFORE RUNNING THIS CODE: 
+#Install Docker https://docs.docker.com/get-docker/
+#docker run -p 8000:8000 -d --rm mooreap/tweeboparserdocker
 import pandas as pd
 from tweebo_parser import API, ServerError
 
