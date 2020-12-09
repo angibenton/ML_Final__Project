@@ -43,7 +43,6 @@ def train(examples_filename, model_filename, kernelmatrix_filename, lmbda):
     print("Done training")
     return
 
-
 def test(examples_filename, model_filename, kernel):
     print("Testing...")
     #open model
@@ -75,26 +74,48 @@ def test_precomputed_kernel(examples_filename, model_filename, kernelmatrix_file
     #save predictions ? idk 
     print("Done testing")
 
-#TODO add another function to just compute the testing kernel matrix so you can use this ^ if needed ?
+def precompute_train_kernel_matrix(X_train, kernel, save_matrix_filename):
+    #compute kernel matrix
+    print("computing kernel matrix...")
+    kernel_matrix = kernel.compute_kernel_matrix(X=X_train)
+    print("done computing kernel matrix of shape", kernel_matrix.shape)
+    #save kernel matrix
+    print("saving kernel matrix as csv...")
+    kernel_dataframe = pd.DataFrame(data = kernel_matrix.astype(float))
+    kernel_dataframe.to_csv(save_matrix_filename, index = False)
+    print("done saving kernel matrix in " + save_matrix_filename)
 
-#use different kernels here!
-LMBDA = 1e-6
-sp_kernel = SimplePairsKernel()
-#NOTE: make lambda smaller -> less SVs -> less time to compute kernel matrix -> but at some point less accuracy it seems like
-'''
-train(examples_filename = "data/p2_train_parsed.csv", model_filename = "saved_models/p2_simple_pairs.model", kernelmatrix_filename = "data/p2_train_pairs_matrix.csv", lmbda = LMBDA)
-test(examples_filename = "data/p2_test_parsed.csv", model_filename = "saved_models/p2_simple_pairs.model", kernel = sp_kernel)
-'''
+
+def precompute_test_kernel_matrix(X_test, model_filename, kernel, save_matrix_filename):
+    #open model
+    mod = pickle.load(open(model_filename, 'rb'))
+    #open test examples
+    #compute kernel matrix 
+    print("computing kernel matrix...")
+    kernel_matrix = kernel.compute_kernel_matrix(X = mod.support_vectors, X_prime = X_test)
+    print("done computing kernel matrix of shape", kernel_matrix.shape)
+    #save kernel matrix
+    print("saving kernel matrix as csv...")
+    kernel_dataframe = pd.DataFrame(data = kernel_matrix.astype(float))
+    kernel_dataframe.to_csv(save_matrix_filename, index = False)
+    print("done saving kernel matrix in " + save_matrix_filename)
 
 
-#Try to make a precomputed kernel matrix for 
-#TFIDFSubgraphsKernel
-X_train, y_train = load_examples_from_csv("./data/p2_train_parsed.csv")
-X_test, y_test = load_examples_from_csv("./data/p2_test_parsed.csv")
 
-tg_kernel = TFIDFSubgraphsKernel(X=X_train, X_prime=X_test)
-kernel_matrix = tg_kernel.compute_kernel_matrix(X=X_train, X_prime = X_test)
-print("kernel_matrix shape: ", kernel_matrix.shape)
-print(kernel_matrix)
-kernel_dataframe = pd.DataFrame(data = kernel_matrix.astype(float))
-kernel_dataframe.to_csv('./data/p2_train_vs_test_subgraphs_matrix_tfidf.csv', index = False)
+#PROBLEM ONE
+#we all use the same X_train
+#@jack this works for p2, not p1. I can't find the difference between the 2 files
+X_train, y_train = load_examples_from_csv('data/p1_train_parsed.csv')
+print(y_train.shape)
+
+sim_pair_k = SimplePairsKernel()
+precompute_train_kernel_matrix(X_train = X_train, kernel = sim_pair_k, save_matrix_filename = "kernel_matrices/p1_train_pairs.csv")
+
+sim_graph_k = SimpleSubgraphsKernel()
+precompute_train_kernel_matrix(X_train = X_train, kernel = sim_graph_k, save_matrix_filename = "kernel_matrices/p1_train_subgraphs.csv")
+
+tfidf_pair_k = TFIDFPairsKernel(X=X_train)
+precompute_train_kernel_matrix(X_train = X_train, kernel = tfidf_pair_k, save_matrix_filename = "kernel_matrices/p1_train_pairs_tfidf.csv")
+
+tfidf_graph_k = TFIDFSubgraphsKernel(X=X_train)
+precompute_train_kernel_matrix(X_train = X_train, kernel = tfidf_graph_k, save_matrix_filename = "kernel_matrices/p1_train_subgraphs_tfidf.csv")

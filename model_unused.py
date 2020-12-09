@@ -1,9 +1,11 @@
 import numpy as np
 from numpy import array, dot
 from qpsolvers import solve_qp
-#currently working on this ! - angi 
 
 
+'''
+TODO write this angi
+'''
 
 
 class DualSVM(object):

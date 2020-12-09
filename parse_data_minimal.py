@@ -1,5 +1,5 @@
 import pandas as pd
-tweets = pd.read_csv("raw_data.csv", index_col = 0)
+tweets = pd.read_csv("data/raw_data.csv", index_col = 0)
 
 good_tweets = tweets[tweets["class"] == 2]
 offensive_tweets = tweets[tweets["class"] == 1]
