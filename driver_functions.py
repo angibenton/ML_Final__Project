@@ -1,4 +1,5 @@
 from models import KernelPegasos
+from models import KernelPegasos
 from kernel import SimplePairsKernel
 from kernel import SimpleSubgraphsKernel
 from kernel import TFIDFPairsKernel
@@ -8,7 +9,7 @@ import pickle
 import pandas as pd
 import numpy as np
 
-#------TEST DRIVER FILE-------
+#------DRIVER FUNCTIONS-------
 
 def load_examples_from_csv(examples_filename):
     data_df = pd.read_csv(examples_filename)
@@ -30,17 +31,22 @@ def print_acc(y, y_hat):
 def train(examples_filename, model_filename, kernelmatrix_filename, lmbda):
     print("Training...")
     #get the data
+    print("Loading examples...")
     X, y = load_examples_from_csv(examples_filename)
     #get the kernel matrix
+    print("Loading matrix...")
     kernel_matrix_df = pd.read_csv(kernelmatrix_filename)
     kernel_matrix = kernel_matrix_df.to_numpy()
+    print("Creating model...")
     mod = KernelPegasos(nexamples = len(X), lmbda = lmbda) 
     #train
+    print("Fitting model...")
     mod.fit(X=X, y=y, kernel_matrix = kernel_matrix)  
     #save the model
+    print("Saving model...")
     pickle.dump(mod, open(model_filename, 'wb'))
     print("Percentage of training examples that become support vectors: ",  len(mod.support_vectors)/len(X))
-    print("Done training")
+    print("Done training, model saved in " + model_filename)
     return
 
 def test(examples_filename, model_filename, kernel):
@@ -99,23 +105,3 @@ def precompute_test_kernel_matrix(X_test, model_filename, kernel, save_matrix_fi
     kernel_dataframe = pd.DataFrame(data = kernel_matrix.astype(float))
     kernel_dataframe.to_csv(save_matrix_filename, index = False)
     print("done saving kernel matrix in " + save_matrix_filename)
-
-
-
-#PROBLEM ONE
-#we all use the same X_train
-#@jack this works for p2, not p1. I can't find the difference between the 2 files
-X_train, y_train = load_examples_from_csv('data/p1_train_parsed.csv')
-print(y_train.shape)
-
-sim_pair_k = SimplePairsKernel()
-precompute_train_kernel_matrix(X_train = X_train, kernel = sim_pair_k, save_matrix_filename = "kernel_matrices/p1_train_pairs.csv")
-
-sim_graph_k = SimpleSubgraphsKernel()
-precompute_train_kernel_matrix(X_train = X_train, kernel = sim_graph_k, save_matrix_filename = "kernel_matrices/p1_train_subgraphs.csv")
-
-tfidf_pair_k = TFIDFPairsKernel(X=X_train)
-precompute_train_kernel_matrix(X_train = X_train, kernel = tfidf_pair_k, save_matrix_filename = "kernel_matrices/p1_train_pairs_tfidf.csv")
-
-tfidf_graph_k = TFIDFSubgraphsKernel(X=X_train)
-precompute_train_kernel_matrix(X_train = X_train, kernel = tfidf_graph_k, save_matrix_filename = "kernel_matrices/p1_train_subgraphs_tfidf.csv")
