@@ -26,7 +26,7 @@ def print_acc(y, y_hat):
         if y[i] == y_hat[i]:
             correct = correct + 1
     acc = correct / tot
-    print("Accuracy = " + str(acc) + "%, " + str(correct) + " out of " + str(tot))
+    print("Accuracy = " + str(acc * 100) + "%, " + str(correct) + " out of " + str(tot))
 
 def train(examples_filename, model_filename, kernelmatrix_filename, lmbda):
     print("Training...")
