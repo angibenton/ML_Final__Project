@@ -16,7 +16,7 @@ def load_examples_from_csv(examples_filename):
     y = data_df["class"].to_numpy()
     conll = data_df["CoNLL"].values.tolist()
     strings = data_df["tweet"].values.tolist()
-    X = tuple(zip(strings, conll))
+    X = list(zip(strings, conll))
     return X, y
 
 def print_acc(y, y_hat):
@@ -47,7 +47,7 @@ def train(examples_filename, model_filename, kernelmatrix_filename, lmbda):
     pickle.dump(mod, open(model_filename, 'wb'))
     print("Percentage of training examples that become support vectors: ",  len(mod.support_vectors)/len(X))
     print("Done training, model saved in " + model_filename)
-    return
+    return 
 
 def test(examples_filename, model_filename, kernel):
     print("Testing...")
@@ -61,8 +61,8 @@ def test(examples_filename, model_filename, kernel):
     #predict
     y_hat = mod.predict(X=X, kernel_matrix=kernel_matrix)
     print_acc(y, y_hat)
-    #save predictions ? idk
     print("Done testing")
+    return y_hat
 
 
 def test_precomputed_kernel(examples_filename, model_filename, kernelmatrix_filename):
@@ -79,6 +79,7 @@ def test_precomputed_kernel(examples_filename, model_filename, kernelmatrix_file
     print_acc(y, y_hat)
     #save predictions ? idk 
     print("Done testing")
+    return y_hat
 
 def precompute_train_kernel_matrix(X_train, kernel, save_matrix_filename):
     #compute kernel matrix

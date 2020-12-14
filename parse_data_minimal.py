@@ -11,7 +11,7 @@ print(good_tweets)
 
 print("TOTAL TWEETS: ", len(tweets))
 print("GOOD TWEETS: ", len(good_tweets))
-print("OFFENSIVE TWEETS: ", len(offensive_tweets))
+print("OFFENSIVE TWEETS: ", len(offensive_tweets)
 print("HATEFUL TWEETS: ", len(hate_tweets))
 
 print(tweets["tweet"][6])
