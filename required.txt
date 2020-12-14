@@ -4,6 +4,8 @@ tweebo-parser-python-api
 pandas
 numpy
 re
-sklearn.utils 
+sklearn
 math
 pickle 
+tensorflow
+keras
