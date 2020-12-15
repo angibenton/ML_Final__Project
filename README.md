@@ -19,14 +19,13 @@ __misc_scripts/*__ - various python files that were for testing, etc., and are n
 
 __baseline/*__ - code from hw4 used for computing baseline accuracy
 
-
-
 ## Other 
 * __required.txt__  - all required python packages 
 * __data/*__ - csv files containing training and testing examples
 * __kernel_matrices/*__ - csv files containing precomputed kernel matrices
 * __saved_models/*__ - models saved with pickle 
 
-
-
+## Notebook for final submission
+* Final_Project_Submission_notebook.ipynb
+* Final_Project_Submission_notebook.pdf
 
