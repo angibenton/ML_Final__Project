@@ -28,4 +28,5 @@ __baseline/*__ - code from hw4 used for computing baseline accuracy
 ## Notebook for final submission
 * Final_Project_Submission_notebook.ipynb
 * Final_Project_Submission_notebook.pdf
+* notebook for text generation.ipynb
 
