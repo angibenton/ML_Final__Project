@@ -26,7 +26,7 @@ __baseline/*__ - code from hw4 used for computing baseline accuracy
 * __saved_models/*__ - models saved with pickle 
 
 ## Notebook for final submission
-* Final_Project_Submission_notebook.ipynb
-* Final_Project_Submission_notebook.pdf
-* notebook for text generation.ipynb
+* __Final_Project_Submission_notebook.ipynb__
+* __Final_Project_Submission_notebook.pdf__
+* __notebook for text generation.ipynb__
 
